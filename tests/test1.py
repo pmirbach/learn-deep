@@ -30,29 +30,29 @@ from sklearn import model_selection
 #print(boston.DESCR)
 
 
-#X, y = datasets.make_blobs(n_samples=1000, centers=3, n_features=2)
-X, y = datasets.make_classification(n_samples=1000, n_features=2, 
-                                    n_informative=2, n_redundant=0,
-                                    n_clusters_per_class=1, n_classes=3)
+##X, y = datasets.make_blobs(n_samples=1000, centers=3, n_features=2)
+#X, y = datasets.make_classification(n_samples=1000, n_features=2, 
+#                                    n_informative=2, n_redundant=0,
+#                                    n_clusters_per_class=1, n_classes=3)
+#
+#y_unique = np.unique(y)
+#colors = cm.rainbow(np.linspace(0.0, 1.0, y_unique.size))
+#
+#fig1, ax = plt.subplots()
+#for (this_y, color) in zip(y_unique, colors):
+#    this_X = X[y == this_y]
+#    ax.scatter(this_X[:,0], this_X[:,1], c=color)
+#
+##model_selection.train_test_split()
+#
+##exit()
+#
+#
+#plt.show()
+#
+##model_selection.train_test_split()
 
-y_unique = np.unique(y)
-colors = cm.rainbow(np.linspace(0.0, 1.0, y_unique.size))
-
-fig1, ax = plt.subplots()
-for (this_y, color) in zip(y_unique, colors):
-    this_X = X[y == this_y]
-    ax.scatter(this_X[:,0], this_X[:,1], c=color)
-
-#model_selection.train_test_split()
-
-#exit()
-
-
-plt.show()
-
-#model_selection.train_test_split()
-
-
+print((1,)*2)
 
 
 
