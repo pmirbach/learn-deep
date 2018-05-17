@@ -52,7 +52,28 @@ from sklearn import model_selection
 #
 ##model_selection.train_test_split()
 
-print((1,)*2)
+#print((1,)*2)
+
+
+a = [1,2,3]
+b = [4,5,6]
+
+dic_1 = dict(zip(a,b))
+print(dic_1[1])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
