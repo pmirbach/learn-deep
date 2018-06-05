@@ -82,13 +82,59 @@ def mlp2(X_train, y_train, X_test, y_test):
 	y_pred = model.predict(X_test)
 	return y_pred
 
+#-----------------------------------------------------------------
+# Chapter 5: cross-validation and grid search
+#-----------------------------------------------------------------
+
+from sklearn.model_selection import GridSearchCV
+from sklearn import metrics
+
+def grid(X_train, y_train, X_test, y_test):
+
+	# grid search solution space
+	tuned_parameters = [{'hidden_layer_sizes': [(50,50),(50,100),(100,50),(100,100)], 'solver': ['sgd','adam']}]
+	
+	# scores to consider
+	scores = ['precision', 'recall']
+
+	for score in scores:
+
+	# grid search
+	    clf = GridSearchCV(MLPClassifier(verbose=10, max_iter = 20), tuned_parameters, cv=5, scoring='%s_macro' % score)
+	    clf.fit(X_train, y_train)
+	    print("Best parameters:",clf.best_params_)
+	    
+	# scores
+	    print("Grid scores:")
+	    means = clf.cv_results_['mean_test_score']
+	    stds = clf.cv_results_['std_test_score']
+	    for mean, std, params in zip(means, stds, clf.cv_results_['params']):
+	        print("%0.3f (+/-%0.03f) for %r" % (mean, std * 2, params))
+	    y_true, y_pred = y_test, clf.predict(X_test)
+
+#-----------------------------------------------------------------
+# Chapter 6: classification report and confusion matrix
+#-----------------------------------------------------------------
+
+def report(y_true, y_pred):
+
+	# classification report
+	print("Classification report for classifier:\n%s\n" % (metrics.classification_report(y_true, y_pred)))
+
+	# confusion matrix
+	print("Confusion matrix:\n%s" % metrics.confusion_matrix(y_true, y_pred))
 
 
+
+#-----------------------------------------------------------------
+# run
+#-----------------------------------------------------------------
 
 X_train, y_train, X_test, y_test = load_mnist(one_hot=False)
 print ("kNN outputs",knn_short(X_test[0], X_train, y_train, k=10))
 y_pred = mlp1(X_train, y_train, X_test, y_test)
+
 X_train, y_train, X_test, y_test = load_mnist(one_hot=True)
 y_pred = mlp2(X_train, y_train, X_test, y_test)
-
-plt.show()
+grid(X_train, y_train, X_test, y_test)
+report(y_test, y_pred)

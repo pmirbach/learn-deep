@@ -1,6 +1,7 @@
 # Own rules
 *~
 other/mnist
+titanic_dataset.csv
 
 # Probably copyrighted lecture files
 lecture_materials/
