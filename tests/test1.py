@@ -55,16 +55,18 @@ from sklearn import model_selection
 #print((1,)*2)
 
 
-a = [1,2,3]
-b = [4,5,6]
-
-dic_1 = dict(zip(a,b))
-print(dic_1[1])
-
-
+#a = [1,2,3]
+#b = [4,5,6]
+#
+#dic_1 = dict(zip(a,b))
+#print(dic_1[1])
 
 
 
+
+a = 1
+
+print(type(a))
 
 
 

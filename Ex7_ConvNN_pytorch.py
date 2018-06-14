@@ -36,8 +36,14 @@ test_set = torchvision.datasets.MNIST(root=root, train=False, transform=transfor
 train_loader = torch.utils.data.DataLoader(dataset=train_set, batch_size=4, shuffle=True, num_workers=0)
 test_loader = torch.utils.data.DataLoader(dataset=test_set, batch_size=4, shuffle=False, num_workers=0)
 
+(data_channels, data_height, data_width) = list(train_set[0][0].size())
+data_shape = (data_height, data_width)
+
 print('==>>> total trainning batch number: {}'.format(len(train_loader)))
 print('==>>> total testing batch number: {}'.format(len(test_loader)))
+print('==>>> Data properties:\n  >>> Number channels: {}, Data (height x width): ({} x {})'
+      .format(data_channels, data_height, data_width))
+
 
 
 if flag_show_dataset_sample:
@@ -60,41 +66,72 @@ class ConvNet(nn.Module):
     
     def __init__(self):
         super(ConvNet, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-#        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(in_channels=6, out_channels=16, kernel_size=5)
-#        self.fc1 = nn.Linear(in_features=16 * 5 * 5, out_features=120)
-        self.fc1 = nn.Linear(in_features=256, out_features=120)
+        self.data_shape = data_shape
+        self.conv1 = nn.Conv2d(in_channels=data_channels, out_channels=6, kernel_size=4)
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.conv2 = nn.Conv2d(in_channels=6, out_channels=16, kernel_size=4)
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
+                
+        data_shape_conv = self._get_layer_output_size([self.conv1, self.pool1, self.conv2, self.pool2])
+        self.NN_in_features = data_shape_conv[0] * data_shape_conv[1] * 16
+#        print(data_shape_conv, self.NN_in_features)
+        
+        self.fc1 = nn.Linear(in_features=self.NN_in_features, out_features=120)
         self.fc2 = nn.Linear(in_features=120, out_features=84)
         self.fc3 = nn.Linear(in_features=84, out_features=10)
     
     def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-#        print(self.num_flat_features(x))
-        x = x.view(-1, self.num_flat_features(x))
+#        print(x.size())   
+#        x = self.conv1(x)
+#        print(x.size())
+#        x = F.relu(x)
+#        print(x.size())
+#        x = self.pool1(x)
+#        print(x.size())
+#        
+#        x = self.conv2(x)
+#        print(x.size())
+#        x = F.relu(x)
+#        print(x.size())
+#        x = self.pool2(x)
+#        print(x.size())
+        x = self.pool1(F.relu(self.conv1(x)))
+#        print(x.size())
+        x = self.pool2(F.relu(self.conv2(x)))
+#        print(x.size())
+        x = x.view(-1, self.NN_in_features)
+#        print(x.size())
         x = F.relu(self.fc1(x))
+#        print(x.size())
         x = F.relu(self.fc2(x))
+#        print(x.size())
         x = self.fc3(x)
+#        print(x.size())
+#        raise('STOP')
         return x
     
-    def num_flat_features(self, x):
-        size = x.size()[1:]
-        num_features = 1
-        for s in size:
-            num_features *= s
-        return num_features
-        
-
+    def _get_layer_output_size(self, layers):
+        data_shape_new = list(data_shape)
+        for layer in layers:
+            F = layer.kernel_size
+            P = layer.padding
+            S = layer.stride
+            F = [F, F] if (type(F) == int) else F
+            P = [P, P] if (type(P) == int) else P
+            S = [S, S] if (type(S) == int) else S            
+            for i in range(2):
+                data_shape_new[i] = int((data_shape_new[i] - F[i] + 2 * P[i]) / S[i] + 1)
+        return data_shape_new
+            
 Net = ConvNet()
+print(Net)
 
 
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(Net.parameters(), lr=0.001, momentum=0.9)
 
 
-for epoch in range(2):
+for epoch in range(10):
     
     running_loss = 0
     for i, data in enumerate(train_loader, start=0):
@@ -106,7 +143,7 @@ for epoch in range(2):
         optimizer.step()
         
         running_loss += loss.item()
-        if i % 2000 == 1999:
+        if i % 2500 == 2499:
             print('[%d, %5d] loss: %.3f' %
                   (epoch + 1, i + 1, running_loss / 2000))
             running_loss = 0.0
