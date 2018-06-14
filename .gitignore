@@ -5,6 +5,7 @@ titanic_dataset.csv
 mnist
 *.tfl.*
 checkpoint
+data
 
 # Probably copyrighted lecture files
 lecture_materials/
