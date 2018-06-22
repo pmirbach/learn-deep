@@ -62,12 +62,12 @@ from sklearn import model_selection
 #print(dic_1[1])
 
 
-
-
-a = 1
-
-print(type(a))
-
+a = np.zeros((5, ))
+a[0] = 1
+a[1] = 2
+#a[3] = 5
+print(a[a.nonzero()])
+print(np.mean(a[a.nonzero()]))
 
 
 
