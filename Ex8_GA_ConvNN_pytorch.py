@@ -39,7 +39,7 @@ test_loader = torch.utils.data.DataLoader(dataset=test_set, batch_size=4, shuffl
 (data_channels, data_height, data_width) = list(train_set[0][0].size())
 data_shape = (data_height, data_width)
 
-print('==>>> total trainning batch number: {}'.format(len(train_loader)))
+print('==>>> total training batch number: {}'.format(len(train_loader)))
 print('==>>> total testing batch number: {}'.format(len(test_loader)))
 print('==>>> Data properties:\n  >>> Number channels: {}, Data (height x width): ({} x {})'
       .format(data_channels, data_height, data_width))
