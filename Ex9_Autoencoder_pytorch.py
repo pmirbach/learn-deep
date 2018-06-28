@@ -16,6 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import os
+import time
 
 
 flag_show_dataset_sample = 0
@@ -81,7 +82,8 @@ class Autoencoder(nn.Module):
         x = x.view(-1, self.N_input)
         x = self.encoder(x)
         y = self.decoder(x)
-        y = y.view(self.data_shape)
+#        print(y.size())
+        y = y.view(-1, self.data_shape[0], self.data_shape[1])
         return y
     
     def encoder(self, x):
@@ -93,27 +95,30 @@ class Autoencoder(nn.Module):
         y = F.relu(self.dec_fc1(y))
         y = F.relu(self.dec_fc2(y))
         return y
-        
+    
+
+
+
         
 def train_Net(Net, optim_method='SGD', lr=1e-3, N_epoch=5):
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.MSELoss()
     
-    if optim_method == 'SGD':    
-        optimizer = torch.optim.SGD(Net.parameters(), lr=lr, momentum=0.9)
-    elif optim_method == 'Adam':
-        optimizer = torch.optim.Adam(Net.parameters(), lr=lr)
-    
+    optimizer = torch.optim.Adam(Net.parameters(), lr=lr, weight_decay=1e-5)
     print(optimizer)
-    
+
+    start_time_0 = time.time()
+    time_epoch = np.zeros((N_epoch, ))
+
     print('Start Training')
     for epoch in range(N_epoch):
+        start_time_epoch = time.time()
         running_loss = 0
         for i, data in enumerate(train_loader, start=0):           
             inputs, labels = data
             optimizer.zero_grad()
             outputs = Net(inputs)
-            loss = criterion(outputs, labels)
+            loss = criterion(outputs, data)
             loss.backward()
             optimizer.step()
             
@@ -122,7 +127,11 @@ def train_Net(Net, optim_method='SGD', lr=1e-3, N_epoch=5):
                 print('[%d, %5d] loss: %.3f' %
                       (epoch + 1, i + 1, running_loss / 2500))
                 running_loss = 0
-    print('Finished Training')
+        time_epoch[epoch] = time.time() - start_time_epoch
+        time_estimate = (N_epoch - (epoch + 1)) * np.mean(time_epoch[time_epoch.nonzero()])
+        print('Estimated time remaining: {0:5.1f} seconds'.format(time_estimate))
+    
+    print('Finished Training - Duration: {0:5.1f} seconds'.format(time.time() - start_time_0))
 
 
 def test_Net(Net):
@@ -140,7 +149,9 @@ def test_Net(Net):
     return correct / total
 
 
-
+Net = Autoencoder()
+train_Net(Net)
+test_Net(Net)
 
 
 

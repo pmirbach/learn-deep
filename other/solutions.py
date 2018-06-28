@@ -124,17 +124,185 @@ def report(y_true, y_pred):
 	# confusion matrix
 	print("Confusion matrix:\n%s" % metrics.confusion_matrix(y_true, y_pred))
 
+#-----------------------------------------------------------------
+# Chapter 7: convolutional neural network
+#-----------------------------------------------------------------
+
+def conv(X_train, y_train, X_test, y_test):
+
+	# reshape data
+	X_train = X_train.reshape([-1, 28, 28, 1])
+	X_test = X_test.reshape([-1, 28, 28, 1])
+
+	# build network
+	network = tflearn.input_data(shape=[None, 28, 28, 1], name='input')
+	network = tflearn.conv_2d(network, 32, 3, activation='relu', regularizer="L2")
+	network = tflearn.max_pool_2d(network, 2)
+	network = tflearn.local_response_normalization(network)
+	network = tflearn.conv_2d(network, 64, 3, activation='relu', regularizer="L2")
+	network = tflearn.max_pool_2d(network, 2)
+	network = tflearn.local_response_normalization(network)
+	network = tflearn.fully_connected(network, 128, activation='tanh')
+	network = tflearn.dropout(network, 0.8)
+	network = tflearn.fully_connected(network, 256, activation='tanh')
+	network = tflearn.dropout(network, 0.8)
+	network = tflearn.fully_connected(network, 10, activation='softmax')
+	network = tflearn.regression(network, optimizer='adam', learning_rate=0.01, loss='categorical_crossentropy', name='target')
+
+	# train conv net
+	model = tflearn.DNN(network, tensorboard_verbose=0)
+	model.fit({'input': X_train}, {'target': y_train}, n_epoch=20, validation_set=({'input': X_test}, {'target': y_test}), snapshot_step=100, show_metric=True)
+
+#-----------------------------------------------------------------
+# Chapter 8: neuroevo
+#-----------------------------------------------------------------
+
+	# hyperparameters
+units = [2**(units_+3) for units_ in range(2**3)] # 3 bits
+activations = ['tanh','sigmoid','relu','Softsign'] # 2 bits
+values = [0.25,0.5,0.75,0.9] # 2 bits
+
+	# from binary to int
+def toInt(z):
+	z=z[::-1]
+	sum_=0
+	for i in range(len(z)):
+		sum_+=2**i*z[i]
+	return sum_
+
+	# index and type handling
+def unwrap(genotype,z):
+	global k, units, activations, values
+	print ("k",k)
+	if genotype[0] == 8:
+		k+=3
+		return units[toInt(z[k-3:k])]
+	elif genotype[0] == 'tanh':
+		k+=2
+		return activations[toInt(z[k-2:k])]
+	elif genotype[0] == 0.25:
+		k+=2
+		return values[toInt(z[k-2:k])]
+
+	# fitness function
+def fit(z, X_train, y_train, X_test, y_test):
+
+	# resphape data
+	X_train = np.reshape(X_train, (-1, 28, 28))
+	X_test = np.reshape(X_test, (-1, 28, 28))
+
+	global k, units, activations, values
+	k = 0
+
+	# conv net
+	tf.reset_default_graph()
+	network = tflearn.input_data(shape=[None, 28, 28, 1], name='input')
+	network = tflearn.conv_2d(network, unwrap(units,z), 3, activation=unwrap(activations,z), regularizer="L2")
+	network = tflearn.max_pool_2d(network, 2)
+	network = tflearn.local_response_normalization(network)
+	network = tflearn.conv_2d(network, unwrap(units,z), 3, activation=unwrap(activations,z), regularizer="L2")
+	network = tflearn.max_pool_2d(network, 2)
+	network = tflearn.local_response_normalization(network)
+	network = tflearn.fully_connected(network, unwrap(units,z), activation=unwrap(activations,z))
+	network = tflearn.dropout(network, unwrap(values,z))
+	network = tflearn.fully_connected(network, unwrap(units,z), activation=unwrap(activations,z))
+	network = tflearn.dropout(network, unwrap(values,z))
+	network = tflearn.fully_connected(network, 10, activation='softmax')
+	network = tflearn.regression(network, optimizer='adam', learning_rate=0.01, loss='categorical_crossentropy', name='target')
+
+	# training
+	model = tflearn.DNN(network, tensorboard_verbose=0)
+	model.fit({'input': X_train}, {'target': y_train}, n_epoch=20, validation_set=({'input': X_test}, {'target': y_test}), snapshot_step=100, show_metric=True)
+	score = model.evaluate(testX, testY)
+	print ("acc = ", score[0])
+	return score[0]
+
+	# GA
+def ea(X_train, y_train, X_test, y_test):
+
+	# init
+	n = 24
+	sigma = 1./n
+	z = np.random.randint(2, size=(n,))
+	f = fit(z,X_train, y_train, X_test, y_test)
+	output = "initialization: fitness: "+str(f)+"\n"
+	print (output)
+
+	# GA loop
+	for t in range(100):
+
+		child = [(bit+1)%2 if np.random.random()<sigma else bit for bit in z]
+		f_ = fit(child, X_train, y_train, X_test, y_test)
+		if -f_<-f:
+			z = child
+			f = f_
+	
+		output = "generation: "+str(t)+", fitness: "+str(f)+"\n"
+		print (output)
+	output = "fitness of: "+str(z)+" is: "+str(f)
+	print (output)
+
+#-----------------------------------------------------------------
+# Chapter 9: autoencoder
+#-----------------------------------------------------------------
+
+def auto(X_train, y_train, X_test, y_test):
+
+	# build network
+	encoder = tflearn.input_data(shape=[None, 784])
+	encoder = tflearn.fully_connected(encoder, 256)
+	encoder = tflearn.fully_connected(encoder, 64)
+
+	decoder = tflearn.fully_connected(encoder, 256)
+	decoder = tflearn.fully_connected(decoder, 784, activation='sigmoid')
+
+	# regression
+	network = tflearn.regression(decoder, optimizer='adam', learning_rate=0.001, loss='mean_square', metric=None)
+	
+	# train autoencoder
+	model = tflearn.DNN(network, tensorboard_verbose=0)
+	#print(X_train.shape)
+	#raise('STOP')
+	X_train_noise = X_train + np.random.randn(X_train.shape)
+	raise('STOP')
+	
+	model.fit(X_train, X_train, n_epoch=20, validation_set=(X_test, X_test), run_id="auto_encoder", batch_size=256)
+
+	# encode X_train[0] for test
+	encoding_model = tflearn.DNN(encoder, session=model.session)
+	print(encoding_model.predict([X_train[0]]))
+
+	# testing image reconstruction on new data
+	print("Visualizing results after being encoded and decoded:")
+	X_test = tflearn.data_utils.shuffle(X_test)[0]
+	# apply encode and decode over test set
+	encode_decode = model.predict(X_test)
+	# compare original images with their reconstructions
+	f, a = plt.subplots(2, 10, figsize=(10, 2))
+	for i in range(10):
+	    temp = [[ii, ii, ii] for ii in list(X_test[i])]
+	    a[0][i].imshow(np.reshape(temp, (28, 28, 3)))
+	    temp = [[ii, ii, ii] for ii in list(encode_decode[i])]
+	    a[1][i].imshow(np.reshape(temp, (28, 28, 3)))
+	f.show()
+	plt.draw()
+	plt.waitforbuttonpress()
 
 
 #-----------------------------------------------------------------
 # run
 #-----------------------------------------------------------------
 
-X_train, y_train, X_test, y_test = load_mnist(one_hot=False)
-print ("kNN outputs",knn_short(X_test[0], X_train, y_train, k=10))
-y_pred = mlp1(X_train, y_train, X_test, y_test)
+#X_train, y_train, X_test, y_test = load_mnist(one_hot=False)
+#print ("kNN outputs",knn_short(X_test[0], X_train, y_train, k=10))
+#y_pred = mlp1(X_train, y_train, X_test, y_test)
 
 X_train, y_train, X_test, y_test = load_mnist(one_hot=True)
-y_pred = mlp2(X_train, y_train, X_test, y_test)
-grid(X_train, y_train, X_test, y_test)
-report(y_test, y_pred)
+#y_pred = mlp2(X_train, y_train, X_test, y_test)
+#grid(X_train, y_train, X_test, y_test)
+#report(y_test, y_pred)
+#conv(X_train, y_train, X_test, y_test)
+#ea(X_train, y_train, X_test, y_test)
+auto(X_train, y_train, X_test, y_test)
+#gan(X_train, y_train, X_test, y_test)
+plt.show()
