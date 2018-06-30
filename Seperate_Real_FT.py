@@ -27,25 +27,25 @@ root = './data'
 if not os.path.exists(root):
     os.mkdir(root)
 
-transform = torchvision.transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=(0.5, ), std=(0.5, ))])
-
-train_set = torchvision.datasets.MNIST(root=root, train=True, transform=transform, download=True)
-test_set = torchvision.datasets.MNIST(root=root, train=False, transform=transform, download=True)
-
-train_loader = torch.utils.data.DataLoader(dataset=train_set, batch_size=4, shuffle=True, num_workers=0)
-test_loader = torch.utils.data.DataLoader(dataset=test_set, batch_size=4, shuffle=False, num_workers=0)
-
-(data_channels, data_height, data_width) = list(train_set[0][0].size())
-data_shape = (data_height, data_width)
-
-print('==>>> total trainning batch number: {}'.format(len(train_loader)))
-print('==>>> total testing batch number: {}'.format(len(test_loader)))
-print('==>>> Data properties:\n  >>> Number channels: {}, Data (height x width): ({} x {})'
-      .format(data_channels, data_height, data_width))
-
-print(sep)
+#transform = torchvision.transforms.Compose([
+#        transforms.ToTensor(),
+#        transforms.Normalize(mean=(0.5, ), std=(0.5, ))])
+#
+#train_set = torchvision.datasets.MNIST(root=root, train=True, transform=transform, download=True)
+#test_set = torchvision.datasets.MNIST(root=root, train=False, transform=transform, download=True)
+#
+#train_loader = torch.utils.data.DataLoader(dataset=train_set, batch_size=4, shuffle=True, num_workers=0)
+#test_loader = torch.utils.data.DataLoader(dataset=test_set, batch_size=4, shuffle=False, num_workers=0)
+#
+#(data_channels, data_height, data_width) = list(train_set[0][0].size())
+#data_shape = (data_height, data_width)
+#
+#print('==>>> total trainning batch number: {}'.format(len(train_loader)))
+#print('==>>> total testing batch number: {}'.format(len(test_loader)))
+#print('==>>> Data properties:\n  >>> Number channels: {}, Data (height x width): ({} x {})'
+#      .format(data_channels, data_height, data_width))
+#
+#print(sep)
 
 
 #transforms.Lambda()
@@ -111,52 +111,6 @@ print(sep)
 #
 
 
-
-class ConvNet(nn.Module):
-    
-    def __init__(self, N_conv1_out=6, N_conv1_kernel=4, N_conv2_out=16, N_conv2_kernel=5):
-        super(ConvNet, self).__init__()
-        self.data_shape = data_shape
-        self.conv1 = nn.Conv2d(in_channels=data_channels, out_channels=N_conv1_out, kernel_size=N_conv1_kernel)
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.conv2 = nn.Conv2d(in_channels=N_conv1_out, out_channels=N_conv2_out, kernel_size=N_conv2_kernel)
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
-                
-        data_shape_conv = self._get_layer_output_size([self.conv1, self.pool1, self.conv2, self.pool2])
-        self.NN_in_features = data_shape_conv[0] * data_shape_conv[1] * N_conv2_out
-#        print(data_shape_conv, self.NN_in_features)
-        
-        self.fc1 = nn.Linear(in_features=self.NN_in_features, out_features=120)
-        self.fc2 = nn.Linear(in_features=120, out_features=84)
-        self.fc3 = nn.Linear(in_features=84, out_features=10)
-    
-    def forward(self, x):
-        x = np.fft.fft2(x)
-        x = torch.from_numpy(x)
-        
-        x = self.pool1(F.relu(self.conv1(x)))
-        x = self.pool2(F.relu(self.conv2(x)))
-        x = x.view(-1, self.NN_in_features)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
-    
-    def _get_layer_output_size(self, layers):
-        data_shape_new = list(data_shape)
-        for layer in layers:
-            F = layer.kernel_size
-            P = layer.padding
-            S = layer.stride
-            F = [F, F] if (type(F) == int) else F
-            P = [P, P] if (type(P) == int) else P
-            S = [S, S] if (type(S) == int) else S            
-            for i in range(2):
-                data_shape_new[i] = int((data_shape_new[i] - F[i] + 2 * P[i]) / S[i] + 1)
-        return data_shape_new
-            
-
-
 def train_Net(Net, optim_method='SGD', lr=1e-3, N_epoch=5):
 
     criterion = nn.CrossEntropyLoss()
@@ -216,10 +170,135 @@ def test_Net(Net):
 
 
 
-Net = ConvNet(N_conv1_out=8, N_conv1_kernel=4, N_conv2_out=32, N_conv2_kernel=4)
-print(Net)
-train_Net(Net, optim_method='SGD', lr=4e-3, N_epoch=5)
+#Net = ConvNet(N_conv1_out=8, N_conv1_kernel=4, N_conv2_out=32, N_conv2_kernel=4)
+#print(Net)
+#train_Net(Net, optim_method='SGD', lr=4e-3, N_epoch=5)
+#
+#test_Net(Net)
 
-test_Net(Net)
+
+from torch.utils.data import Dataset
+from keras.datasets import mnist
+
+class MNIST_FT(Dataset):
+    
+    def __init__(self, root_dir=None, train=True, transform=None):
+        
+        self.root_dir = root_dir
+        self.train = train
+        self.transform = transform
+        (self.x_train, self.y_train), (self.x_test, self.y_test) = mnist.load_data()
+        
+        x_train_ft = np.fft.fft2(self.x_train)
+        x_test_ft = np.fft.fft2(self.x_test)
+        
+        self.x_train_ft_real = np.real(x_train_ft)
+        self.x_train_ft_imag = np.imag(x_train_ft)
+
+        self.x_test_ft_real = np.real(x_test_ft)
+        self.x_test_ft_imag = np.imag(x_test_ft)
+        
+    def __len__(self):
+        return self.x_train.shape[0]
+    
+    def __getitem__(self, idx):
+        if self.train:
+            img = self.x_train[idx,:,:]
+            img_ft_real = self.x_train_ft_real[idx,:,:]
+            img_ft_imag = self.x_train_ft_imag[idx,:,:]
+            label = self.y_train[idx]
+        else:
+            img = self.x_test[idx,:,:]
+            img_ft_real = self.x_test_ft_real[idx,:,:]
+            img_ft_imag = self.x_test_ft_imag[idx,:,:]
+            label = self.y_test[idx]
+        
+        sample = {'real': img, 'ft_real': img_ft_real, 
+                  'ft_imag': img_ft_imag, 'label': label}
+        
+        if self.transform is not None:
+            sample = self.transform(sample)
+        
+        return sample
+
+
+class ToTensor(object):
+    """Convert ndarrays in sample to Tensors."""
+
+    def __call__(self, sample):
+        (img, ft_real, ft_imag) = (sample['real'], sample['ft_real'], sample['ft_imag'])
+        
+        sample['real'] = torch.from_numpy(img)
+        sample['ft_real'] = torch.from_numpy(ft_real)
+        sample['ft_imag'] = torch.from_numpy(ft_imag)
+        
+        return sample
+
+     
+transform = ToTensor()
+
+
+
+train_set = MNIST_FT(train=True, transform=transform)
+test_set = MNIST_FT(train=False, transform=transform)
+
+train_loader = torch.utils.data.DataLoader(dataset=train_set, batch_size=1, shuffle=True, num_workers=0)
+test_loader = torch.utils.data.DataLoader(dataset=test_set, batch_size=1, shuffle=False, num_workers=0)
+
+
+print(train_set.__len__())
+
+flag_show_dataset_sample = 1
+if flag_show_dataset_sample:
+    N_samples = 4
+    train_iter = iter(train_loader)
+    fig, axes = plt.subplots(nrows=N_samples, ncols=3)
+    for i in range(N_samples):
+        sample = train_iter.next()
+        
+        img = sample['real'].numpy()
+        print(type(img), img.shape)
+        
+        axes[i,0].imshow(sample['real'].numpy())
+        axes[i,1].imshow(sample['ft_real'].numpy())
+        axes[i,2].imshow(sample['ft_imag'].numpy())    
+    plt.show()
+
+
+
+class CNN(nn.Module):
+    
+    def __init__(self, sample_channel):
+        super(CNN, self).__init__()
+        self.conv = nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        
+        self.fc1 = nn.Linear(in_features=180, out_features=120)
+        self.fc2 = nn.Linear(in_features=120, out_features=84)
+        self.fc3 = nn.Linear(in_features=84, out_features=10)
+        
+        self.sample_channel = sample_channel
+        
+    def forward(self, x):
+        x = x[self.sample_channel]
+        x = self.pool1(F.relu(self.conv1(x)))
+        x = x.view(-1, self.NN_in_features)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+    
+    def forward_part(self, x):
+        x = x[self.sample_channel]
+        x = self.pool1(F.relu(self.conv1(x)))
+        x = x.view(-1, self.NN_in_features)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        return x        
+
+
+
+
+
 
 

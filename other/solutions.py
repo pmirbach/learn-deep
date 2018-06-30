@@ -261,7 +261,7 @@ def auto(X_train, y_train, X_test, y_test):
 	
 	# train autoencoder
 	model = tflearn.DNN(network, tensorboard_verbose=0)
-	#print(X_train.shape)
+   #print(X_train.shape)
 	#raise('STOP')
 	X_train_noise = X_train + np.random.randn(X_train.shape)
 	raise('STOP')
